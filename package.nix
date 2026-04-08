@@ -2,10 +2,8 @@
 , fetchFromGitHub
 , python3
 , nodejs
-, npm
 , makeWrapper
 , stdenvNoCC
-, writeScript
 }:
 
 let
@@ -22,7 +20,7 @@ in
 stdenvNoCC.mkDerivation {
   inherit pname version src;
 
-  buildInputs = [ makeWrapper python3 nodejs npm ];
+  buildInputs = [ makeWrapper python3 nodejs ];
 
   installPhase = ''
     mkdir -p $out/opt/webzfs
@@ -35,7 +33,7 @@ stdenvNoCC.mkDerivation {
     . .venv/bin/activate
     pip install -r requirements.txt
 
-    # Install Node deps and build CSS
+    # Install Node deps and build CSS (npm is included with nodejs)
     npm install
     npm run build:css
 
@@ -45,10 +43,6 @@ stdenvNoCC.mkDerivation {
 
     # Create wrapper script for gunicorn
     mkdir -p $out/bin
-    wrapProgram $out/bin/gunicorn \
-      --prefix PATH : "${python3}/bin" \
-      --chdir $out/opt/webzfs \
-      --set PYTHONPATH "$out/opt/webzfs"
 
     cat > $out/bin/gunicorn << EOF
     #!${python3}/bin/python
