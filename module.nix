@@ -140,11 +140,10 @@ in
           jinja2
           click
         ]);
+        webzfsDir = "${cfg.package}/opt/webzfs";
       in ''
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
-        
-        # Debug
-        echo "Python path: ${pythonEnv}/bin/python3"
+        export PYTHONPATH="${webzfsDir}"
         
         # Create .env file in state dir if it doesn't exist
         if [ ! -f /var/lib/webzfs/.env ]; then
@@ -152,8 +151,8 @@ in
         fi
 
         # Run gunicorn from the wrapped python environment
-        cd ${cfg.package}/opt/webzfs
-        exec ${pythonEnv}/bin/gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
+        cd ${webzfsDir}
+        exec ${pythonEnv}/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py app.main:app
       '';
 
       preStart = ''
