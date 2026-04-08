@@ -14,11 +14,12 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
+      default = pkgs.webzfs;
+      defaultText = lib.literalExpression "pkgs.webzfs";
       description = ''
         The webzfs package to use.
         This should be a package that provides the webzfs application at /opt/webzfs.
       '';
-      example = lib.literalExpression "pkgs.webzfs";
     };
 
     port = lib.mkOption {
@@ -63,12 +64,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.package != null;
-        message = "services.webzfs.enable requires services.webzfs.package to be set";
-      }
-    ];
 
     users.users.${cfg.user} = {
       isSystemUser = true;
