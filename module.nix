@@ -1,7 +1,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -11,16 +10,6 @@ in
 {
   options.services.webzfs = {
     enable = lib.mkEnableOption "WebZFS - Web-based ZFS management interface";
-
-    package = lib.mkOption {
-      type = lib.types.package;
-      description = ''
-        The webzfs package to use.
-        This should be a package that provides the webzfs application at /opt/webzfs.
-        Use the webzfs overlay or set this explicitly.
-      '';
-      example = lib.literalExpression "pkgs.webzfs";
-    };
 
     port = lib.mkOption {
       type = lib.types.port;
@@ -64,13 +53,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.package != null;
-        message = "services.webzfs.enable requires services.webzfs.package to be set";
-      }
-    ];
-
     users.users.${cfg.user} = {
       isSystemUser = true;
       group = cfg.group;
@@ -95,7 +77,7 @@ in
           "HOST=${cfg.host}"
           "PORT=${toString cfg.port}"
         ];
-        ExecStart = "${cfg.package}/bin/gunicorn -c ${cfg.package}/etc/gunicorn.conf.py";
+        ExecStart = "/opt/webzfs/.venv/bin/gunicorn -c /opt/webzfs/config/gunicorn.conf.py";
         Restart = "always";
         RestartSec = "5";
         RuntimeDirectory = "webzfs";
@@ -107,7 +89,7 @@ in
 
     environment.etc."webzfs/env".text = let
       baseSettings = {
-        CAPTION = "webzfs ${cfg.package.version or "unknown"}";
+        CAPTION = "webzfs";
         SECRET_KEY = "changeme-in-production";
         HOST = cfg.host;
         PORT = toString cfg.port;
