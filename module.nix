@@ -64,8 +64,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = let
-      pythonDeps = with pkgs.python3Packages; [
+    environment.systemPackages = with pkgs; [
+      python3
+      (python3.withPackages (ps: with ps; [
         uvicorn
         fastapi
         pydantic
@@ -82,8 +83,8 @@ in
         humanize
         markupsafe
         jinja2
-      ];
-    in [ pkgs.python3 ] ++ (builtins.attrValues (pkgs.python3.withPackages (ps: pythonDeps))) ++ [ pkgs.python3Packages.gunicorn ];
+      ]))
+    ];
 
     users.users.${cfg.user} = {
       isSystemUser = true;
