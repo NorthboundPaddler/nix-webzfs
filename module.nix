@@ -7,6 +7,7 @@
 
 let
   cfg = config.services.webzfs;
+  webzfsDir = "${cfg.package}/opt/webzfs";
 in
 {
   options.services.webzfs = {
@@ -67,8 +68,6 @@ in
       isSystemUser = true;
       group = cfg.group;
       description = "WebZFS service user";
-      home = "/opt/webzfs";
-      createHome = false;
     };
 
     users.groups.${cfg.group} = { };
@@ -81,20 +80,35 @@ in
         Type = "notify";
         User = cfg.user;
         Group = cfg.group;
-        WorkingDirectory = "/opt/webzfs";
+        WorkingDirectory = webzfsDir;
         Environment = [
-          "PATH=/opt/webzfs/.venv/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
+          "PATH=${webzfsDir}/.venv/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
           "HOST=${cfg.host}"
           "PORT=${toString cfg.port}"
         ];
-        ExecStart = "${cfg.package}/bin/gunicorn -c ${cfg.package}/etc/gunicorn.conf.py";
+        ExecStart = "${webzfsDir}/.venv/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py";
         Restart = "always";
         RestartSec = "5";
-        RuntimeDirectory = "webzfs";
-        RuntimeDirectoryMode = "0755";
       };
 
       environment = cfg.settings;
+
+      script = ''
+        # Create .env file from /etc if it doesn't exist
+        if [ ! -f "${webzfsDir}/.env" ]; then
+          cp /etc/webzfs/env "${webzfsDir}/.env" 2>/dev/null || true
+        fi
+
+        # Ensure the venv python is executable
+        exec ${webzfsDir}/.venv/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py
+      '';
+
+      preStart = ''
+        if [ ! -f "${webzfsDir}/.env" ]; then
+          cp /etc/webzfs/env "${webzfsDir}/.env"
+          chmod 644 "${webzfsDir}/.env"
+        fi
+      '';
     };
 
     environment.etc."webzfs/env".text = let
