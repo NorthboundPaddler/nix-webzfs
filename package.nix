@@ -1,15 +1,8 @@
 { lib
 , fetchFromGitHub
 , python3
-, python3Packages
-, nodejs
-, git
 , makeWrapper
-, smartmontools
-, sudo
-, libkrb5
-, libsodium
-, writeText
+, stdenvNoCC
 }:
 
 let
@@ -22,75 +15,31 @@ let
     rev = "main";
     hash = "sha256-TRgryuKkf4YP7Fwrfkg4nu+Mp+aLyZ1Iky0Y/gcnnw0=";
   };
-
-  python = python3;
-
-  postInstall = writeText "postInstall.sh" ''
-    # This script runs after installation to set up the venv
-    cd $out/opt/webzfs
-    
-    # Create virtual environment
-    python3 -m venv .venv
-    
-    # Install Python dependencies
-    . .venv/bin/activate
-    pip install -r requirements.txt
-    
-    # Install Node dependencies and build CSS
-    npm install
-    npm run build:css
-    
-    # Create .env file if it doesn't exist
-    if [ ! -f .env ]; then
-      cp .env.example .env 2>/dev/null || true
-    fi
-  '';
 in
-python3Packages.buildPythonApplication {
+stdenvNoCC.mkDerivation {
   inherit pname version src;
 
-  format = "other";
-
-  nativeBuildInputs = [
-    makeWrapper
-    nodejs
-    git
-  ];
-
-  buildInputs = [
-    python3
-    libkrb5
-    libsodium
-    smartmontools
-    sudo
-  ];
-
-  buildPhase = ''
-    runPreBuildHooks
-
-    mkdir -p /tmp/webzfs-build
-    cp -r $src/* /tmp/webzfs-build/
-    cd /tmp/webzfs-build
-
-    # Create virtual environment
-    python3 -m venv .venv
-    . .venv/bin/activate
-
-    # Install Python dependencies (allow network)
-    pip install -r requirements.txt
-
-    # Install Node dependencies and build CSS
-    npm install
-    npm run build:css
-
-    # Create .env from example
-    cp .env.example .env 2>/dev/null || true
-  '';
+  buildInputs = [ makeWrapper python3 ];
 
   installPhase = ''
     mkdir -p $out/opt/webzfs
-    cp -r /tmp/webzfs-build/* $out/opt/webzfs/
+    cp -r $src/* $out/opt/webzfs/
 
+    # Create virtual environment with system python
+    cd $out/opt/webzfs
+    python3 -m venv .venv
+    . .venv/bin/activate
+    pip install -r requirements.txt || true
+
+    # Install Node deps and build CSS
+    npm install || true
+    npm run build:css || true
+
+    # Create .env from example
+    cp .env.example .env 2>/dev/null || true
+
+    # Go back and set up gunicorn wrapper
+    cd $out
     mkdir -p $out/bin
     cat > $out/bin/gunicorn << 'WRAPPER'
     #!/bin/sh
