@@ -92,6 +92,8 @@ in
       environment = cfg.settings;
 
       script = ''
+        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:$PATH"
+        
         # Create .env file from /etc if it doesn't exist
         if [ ! -f "${webzfsDir}/.env" ]; then
           cp /etc/webzfs/env "${webzfsDir}/.env" 2>/dev/null || true
@@ -102,6 +104,7 @@ in
       '';
 
       preStart = ''
+        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:$PATH"
         if [ ! -f "${webzfsDir}/.env" ]; then
           cp /etc/webzfs/env "${webzfsDir}/.env"
           chmod 644 "${webzfsDir}/.env"
