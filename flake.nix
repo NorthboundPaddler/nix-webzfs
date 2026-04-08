@@ -7,22 +7,27 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
+    let
+      overlay = final: prev: {
+        webzfs = final.callPackage ./package.nix { };
+      };
+    in
+    (flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
           inherit system;
-          overlays = [ self.overlays.default ];
+          overlays = [ overlay ];
         };
       in
       {
-        packages = pkgs;
+        webzfs = pkgs.webzfs;
+        default = pkgs.webzfs;
       }
-    ) // {
+    )) // {
       nixosModules = {
         webzfs = import ./module.nix;
       };
-      overlays.default = final: prev: {
-        webzfs = final.callPackage ./package.nix { };
-      };
+
+      overlays.default = overlay;
     };
 }
