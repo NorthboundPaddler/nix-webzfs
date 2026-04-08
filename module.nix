@@ -150,9 +150,9 @@ in
           cp /etc/webzfs/env /var/lib/webzfs/.env 2>/dev/null || true
         fi
 
-        # Run gunicorn from the wrapped python environment
+        # Run uvicorn directly (webzfs is ASGI)
         cd ${webzfsDir}
-        exec ${pythonEnv}/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py app.main:app
+        exec ${pythonEnv}/bin/uvicorn config.asgi:app --host ${cfg.host} --port ${toString cfg.port}
       '';
 
       preStart = ''
