@@ -91,8 +91,9 @@ in
         RestartSec = "5";
       };
 
-      environment = cfg.settings;
-      environment.WEBZFS_STATE_DIR = "/var/lib/webzfs";
+      environment = cfg.settings // {
+        WEBZFS_STATE_DIR = "/var/lib/webzfs";
+      };
 
       script = ''
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:$PATH"
