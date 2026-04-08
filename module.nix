@@ -145,11 +145,6 @@ in
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
         export PYTHONPATH="${webzfsDir}"
         
-        # Create .env file in webzfs dir if it doesn't exist
-        if [ ! -f "${webzfsDir}/.env" ]; then
-          cp /etc/webzfs/env "${webzfsDir}/.env" 2>/dev/null || true
-        fi
-
         # Run uvicorn directly (webzfs is ASGI)
         cd ${webzfsDir}
         exec ${pythonEnv}/bin/uvicorn config.asgi:app --host ${cfg.host} --port ${toString cfg.port}
@@ -157,10 +152,16 @@ in
 
       preStart = ''
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
-        if [ ! -f "${webzfsDir}/.env" ]; then
-          cp /etc/webzfs/env "${webzfsDir}/.env"
-          chmod 644 "${webzfsDir}/.env"
+        
+        # Create .env in state dir (writable) and symlink from webzfs dir (read-only nix store)
+        if [ ! -f /var/lib/webzfs/.env ]; then
+          cp /etc/webzfs/env /var/lib/webzfs/.env
+          chmod 644 /var/lib/webzfs/.env
         fi
+        
+        # Symlink .env to the nix store path where webzfs expects it
+        rm -f "${webzfsDir}/.env" 2>/dev/null || true
+        ln -sf /var/lib/webzfs/.env "${webzfsDir}/.env"
       '';
     };
 
