@@ -3,27 +3,22 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs }:
     let
       overlay = final: prev: {
         webzfs = final.callPackage ./package.nix { };
       };
     in
-    (flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          overlays = [ overlay ];
-        };
-      in
-      {
+    {
+      packages.x86_64-linux = let
+        pkgs = import nixpkgs { system = "x86_64-linux"; overlays = [ overlay ]; };
+      in {
         webzfs = pkgs.webzfs;
         default = pkgs.webzfs;
-      }
-    )) // {
+      };
+
       nixosModules = {
         webzfs = import ./module.nix;
       };
