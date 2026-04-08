@@ -119,24 +119,41 @@ in
         WEBZFS_STATE_DIR = "/var/lib/webzfs";
       };
 
-      script = ''
+      script = let
+        pythonEnv = pkgs.python3.withPackages (ps: with ps; [
+          gunicorn
+          uvicorn
+          fastapi
+          pydantic
+          pydantic-settings
+          python-dotenv
+          python-jose
+          python-multipart
+          python-pam
+          bcrypt
+          cryptography
+          paramiko
+          typer
+          rich
+          humanize
+          markupsafe
+          jinja2
+          click
+        ]);
+      in ''
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
         
-        # Debug: show python and gunicorn
-        echo "Python: $(command -v python3)"
-        echo "Gunicorn path: ${pkgs.python3Packages.gunicorn}/bin/gunicorn"
-        
-        # Add Python packages to PYTHONPATH so gunicorn can find them
-        export PYTHONPATH="${pkgs.python3Packages.uvicorn}/${pkgs.python3.sitePackages}"
+        # Debug
+        echo "Python path: ${pythonEnv}/bin/python3"
         
         # Create .env file in state dir if it doesn't exist
         if [ ! -f /var/lib/webzfs/.env ]; then
           cp /etc/webzfs/env /var/lib/webzfs/.env 2>/dev/null || true
         fi
 
-        # Run gunicorn using its full path
+        # Run gunicorn from the wrapped python environment
         cd ${cfg.package}/opt/webzfs
-        exec ${pkgs.python3Packages.gunicorn}/bin/gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
+        exec ${pythonEnv}/bin/gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
       '';
 
       preStart = ''
