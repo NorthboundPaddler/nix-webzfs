@@ -65,8 +65,8 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages = with pkgs; [
-      python3
       (python3.withPackages (ps: with ps; [
+        gunicorn
         uvicorn
         fastapi
         pydantic
@@ -83,6 +83,7 @@ in
         humanize
         markupsafe
         jinja2
+        click
       ]))
     ];
 
