@@ -64,7 +64,26 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    environment.systemPackages = [ pkgs.python3Packages.gunicorn pkgs.python3 ];
+    environment.systemPackages = with pkgs.python3Packages; [
+      python3
+      gunicorn
+      uvicorn
+      fastapi
+      pydantic
+      pydantic-settings
+      python-dotenv
+      python-jose
+      python-multipart
+      python-pam
+      bcrypt
+      cryptography
+      paramiko
+      typer
+      rich
+      humanize
+      markupsafe
+      jinja2
+    ];
 
     users.users.${cfg.user} = {
       isSystemUser = true;
