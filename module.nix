@@ -101,18 +101,18 @@ in
       script = ''
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
         
-        # Debug: show what's available
-        echo "Python: $(which python3)"
-        echo "Gunicorn: $(which gunicorn 2>&1)"
+        # Debug: show python and gunicorn
+        echo "Python: $(command -v python3)"
+        echo "Gunicorn path: ${pkgs.python3Packages.gunicorn}/bin/gunicorn"
         
         # Create .env file in state dir if it doesn't exist
         if [ ! -f /var/lib/webzfs/.env ]; then
           cp /etc/webzfs/env /var/lib/webzfs/.env 2>/dev/null || true
         fi
 
-        # Run gunicorn from system PATH
+        # Run gunicorn using its full path
         cd ${cfg.package}/opt/webzfs
-        exec gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
+        exec ${pkgs.python3Packages.gunicorn}/bin/gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
       '';
 
       preStart = ''
