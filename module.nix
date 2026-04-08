@@ -144,6 +144,9 @@ in
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
         export PYTHONPATH="${webzfsDir}"
         
+        # Set HOME to writable state directory so webzfs can create config/logs
+        export HOME="/var/lib/webzfs"
+        
         # Don't use .env file - set env vars directly since nix store is read-only
         export CAPTION="webzfs ${cfg.package.version or "git"}"
         export SECRET_KEY="${cfg.settings.SECRET_KEY or "changeme-in-production"}"
