@@ -2,7 +2,6 @@
 , fetchFromGitHub
 , python3
 , nodejs
-, makeWrapper
 , stdenvNoCC
 }:
 
@@ -20,7 +19,7 @@ in
 stdenvNoCC.mkDerivation {
   inherit pname version src;
 
-  buildInputs = [ makeWrapper python3 nodejs ];
+  buildInputs = [ python3 nodejs ];
 
   installPhase = ''
     mkdir -p $out/opt/webzfs
@@ -28,31 +27,16 @@ stdenvNoCC.mkDerivation {
 
     cd $out/opt/webzfs
 
-    # Create virtual environment
-    python3 -m venv .venv
-    . .venv/bin/activate
-    pip install -r requirements.txt
-
-    # Install Node deps and build CSS (npm is included with nodejs)
-    npm install
-    npm run build:css
-
     # Create .env from example
     cp .env.example .env 2>/dev/null || true
-    deactivate
 
-    # Create wrapper script for gunicorn
+    # Create wrapper script for gunicorn that uses system Python
     mkdir -p $out/bin
-
     cat > $out/bin/gunicorn << EOF
-    #!${python3}/bin/python
-    import sys
-    import os
-    os.chdir("$out/opt/webzfs")
-    sys.path.insert(0, "$out/opt/webzfs")
-    os.environ["PYTHONPATH"] = "$out/opt/webzfs"
-    import gunicorn.app.wsgiapp
-    sys.exit(gunicorn.app.wsgiapp.run())
+    #!/bin/sh
+    cd "$out/opt/webzfs"
+    export PYTHONPATH="$out/opt/webzfs"
+    exec gunicorn -c "$out/opt/webzfs/config/gunicorn.conf.py" app.main:app
     EOF
     chmod +x $out/bin/gunicorn
   '';
