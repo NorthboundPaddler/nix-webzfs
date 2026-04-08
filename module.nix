@@ -121,7 +121,6 @@ in
 
       script = let
         pythonEnv = pkgs.python3.withPackages (ps: with ps; [
-          gunicorn
           uvicorn
           fastapi
           pydantic
@@ -145,23 +144,18 @@ in
         export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
         export PYTHONPATH="${webzfsDir}"
         
+        # Don't use .env file - set env vars directly since nix store is read-only
+        export CAPTION="webzfs ${cfg.package.version or "git"}"
+        export SECRET_KEY="${cfg.settings.SECRET_KEY or "changeme-in-production"}"
+        export SETTINGS_MODULE="config.settings.base"
+        
         # Run uvicorn directly (webzfs is ASGI)
         cd ${webzfsDir}
         exec ${pythonEnv}/bin/uvicorn config.asgi:app --host ${cfg.host} --port ${toString cfg.port}
       '';
 
       preStart = ''
-        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
-        
-        # Create .env in state dir (writable) and symlink from webzfs dir (read-only nix store)
-        if [ ! -f /var/lib/webzfs/.env ]; then
-          cp /etc/webzfs/env /var/lib/webzfs/.env
-          chmod 644 /var/lib/webzfs/.env
-        fi
-        
-        # Symlink .env to the nix store path where webzfs expects it
-        rm -f "${webzfsDir}/.env" 2>/dev/null || true
-        ln -sf /var/lib/webzfs/.env "${webzfsDir}/.env"
+        # No pre-start actions needed - env vars are set directly in script
       '';
     };
 

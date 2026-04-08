@@ -24,21 +24,9 @@ stdenvNoCC.mkDerivation {
   installPhase = ''
     mkdir -p $out/opt/webzfs
     cp -r $src/* $out/opt/webzfs/
-
-    cd $out/opt/webzfs
-
-    # Create .env from example
-    cp .env.example .env 2>/dev/null || true
-
-    # Create wrapper script for gunicorn that uses system Python
-    mkdir -p $out/bin
-    cat > $out/bin/gunicorn << EOF
-    #!/bin/sh
-    cd "$out/opt/webzfs"
-    export PYTHONPATH="$out/opt/webzfs"
-    exec gunicorn -c "$out/opt/webzfs/config/gunicorn.conf.py" app.main:app
-    EOF
-    chmod +x $out/bin/gunicorn
+    
+    # Create .env from example (will be replaced at runtime)
+    cp $out/opt/webzfs/.env.example $out/opt/webzfs/.env 2>/dev/null || true
   '';
 
   meta = with lib; {
