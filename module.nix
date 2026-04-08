@@ -80,13 +80,11 @@ in
         Type = "notify";
         User = cfg.user;
         Group = cfg.group;
-        WorkingDirectory = webzfsDir;
         Environment = [
           "PATH=${webzfsDir}/.venv/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
           "HOST=${cfg.host}"
           "PORT=${toString cfg.port}"
         ];
-        ExecStart = "${webzfsDir}/.venv/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py";
         Restart = "always";
         RestartSec = "5";
       };
@@ -99,7 +97,7 @@ in
           cp /etc/webzfs/env "${webzfsDir}/.env" 2>/dev/null || true
         fi
 
-        # Ensure the venv python is executable
+        # Run gunicorn
         exec ${webzfsDir}/.venv/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py
       '';
 
