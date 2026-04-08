@@ -1,6 +1,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
@@ -10,6 +11,15 @@ in
 {
   options.services.webzfs = {
     enable = lib.mkEnableOption "WebZFS - Web-based ZFS management interface";
+
+    package = lib.mkOption {
+      type = lib.types.package;
+      default = pkgs.webzfs;
+      defaultText = lib.literalExpression "pkgs.webzfs";
+      description = ''
+        The webzfs package to use.
+      '';
+    };
 
     port = lib.mkOption {
       type = lib.types.port;
@@ -77,7 +87,7 @@ in
           "HOST=${cfg.host}"
           "PORT=${toString cfg.port}"
         ];
-        ExecStart = "/opt/webzfs/.venv/bin/gunicorn -c /opt/webzfs/config/gunicorn.conf.py";
+        ExecStart = "${cfg.package}/bin/gunicorn -c ${cfg.package}/etc/gunicorn.conf.py";
         Restart = "always";
         RestartSec = "5";
         RuntimeDirectory = "webzfs";
@@ -89,7 +99,7 @@ in
 
     environment.etc."webzfs/env".text = let
       baseSettings = {
-        CAPTION = "webzfs";
+        CAPTION = "webzfs ${cfg.package.version or "git"}";
         SECRET_KEY = "changeme-in-production";
         HOST = cfg.host;
         PORT = toString cfg.port;
