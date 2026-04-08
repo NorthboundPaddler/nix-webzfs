@@ -1,8 +1,11 @@
 { lib
 , fetchFromGitHub
 , python3
+, nodejs
+, npm
 , makeWrapper
 , stdenvNoCC
+, writeScript
 }:
 
 let
@@ -19,37 +22,45 @@ in
 stdenvNoCC.mkDerivation {
   inherit pname version src;
 
-  buildInputs = [ makeWrapper python3 ];
+  buildInputs = [ makeWrapper python3 nodejs npm ];
 
   installPhase = ''
     mkdir -p $out/opt/webzfs
     cp -r $src/* $out/opt/webzfs/
 
-    # Create virtual environment with system python
     cd $out/opt/webzfs
+
+    # Create virtual environment
     python3 -m venv .venv
     . .venv/bin/activate
-    pip install -r requirements.txt || true
+    pip install -r requirements.txt
 
     # Install Node deps and build CSS
-    npm install || true
-    npm run build:css || true
+    npm install
+    npm run build:css
 
     # Create .env from example
     cp .env.example .env 2>/dev/null || true
+    deactivate
 
-    # Go back and set up gunicorn wrapper
-    cd $out
+    # Create wrapper script for gunicorn
     mkdir -p $out/bin
-    cat > $out/bin/gunicorn << 'WRAPPER'
-    #!/bin/sh
-    cd /opt/webzfs
-    exec .venv/bin/gunicorn "$@"
-    WRAPPER
-    chmod +x $out/bin/gunicorn
+    wrapProgram $out/bin/gunicorn \
+      --prefix PATH : "${python3}/bin" \
+      --chdir $out/opt/webzfs \
+      --set PYTHONPATH "$out/opt/webzfs"
 
-    mkdir -p $out/etc
-    cp -r $out/opt/webzfs/config $out/etc/gunicorn.conf.py
+    cat > $out/bin/gunicorn << EOF
+    #!${python3}/bin/python
+    import sys
+    import os
+    os.chdir("$out/opt/webzfs")
+    sys.path.insert(0, "$out/opt/webzfs")
+    os.environ["PYTHONPATH"] = "$out/opt/webzfs"
+    import gunicorn.app.wsgiapp
+    sys.exit(gunicorn.app.wsgiapp.run())
+    EOF
+    chmod +x $out/bin/gunicorn
   '';
 
   meta = with lib; {

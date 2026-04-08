@@ -83,7 +83,7 @@ in
         StateDirectory = "webzfs";
         StateDirectoryMode = "0750";
         Environment = [
-          "PATH=${webzfsDir}/.venv/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
+          "PATH=${cfg.package}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
           "HOST=${cfg.host}"
           "PORT=${toString cfg.port}"
         ];
@@ -103,9 +103,9 @@ in
           cp /etc/webzfs/env /var/lib/webzfs/.env 2>/dev/null || true
         fi
 
-        # Run gunicorn
-        cd ${webzfsDir}
-        exec ${webzfsDir}/.venv/bin/gunicorn -c ${webzfsDir}/config/gunicorn.conf.py app.main:app
+        # Run gunicorn from package bin
+        cd ${cfg.package}/opt/webzfs
+        exec ${cfg.package}/bin/gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
       '';
 
       preStart = ''
