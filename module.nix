@@ -64,6 +64,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ pkgs.python3Packages.gunicorn pkgs.python3 ];
+
     users.users.${cfg.user} = {
       isSystemUser = true;
       group = cfg.group;
@@ -77,18 +79,19 @@ in
       after = [ "network.target" "zfs-mount.service" ];
 
       serviceConfig = {
-        Type = "notify";
+        Type = "simple";
         User = cfg.user;
         Group = cfg.group;
         StateDirectory = "webzfs";
         StateDirectoryMode = "0750";
         Environment = [
-          "PATH=${cfg.package}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
+          "PATH=/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
           "HOST=${cfg.host}"
           "PORT=${toString cfg.port}"
         ];
         Restart = "always";
         RestartSec = "5";
+        RemainAfterExit = "yes";
       };
 
       environment = cfg.settings // {
@@ -96,20 +99,24 @@ in
       };
 
       script = ''
-        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:$PATH"
+        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
+        
+        # Debug: show what's available
+        echo "Python: $(which python3)"
+        echo "Gunicorn: $(which gunicorn 2>&1)"
         
         # Create .env file in state dir if it doesn't exist
         if [ ! -f /var/lib/webzfs/.env ]; then
           cp /etc/webzfs/env /var/lib/webzfs/.env 2>/dev/null || true
         fi
 
-        # Run gunicorn from package bin
+        # Run gunicorn from system PATH
         cd ${cfg.package}/opt/webzfs
-        exec ${cfg.package}/bin/gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
+        exec gunicorn -c ${cfg.package}/opt/webzfs/config/gunicorn.conf.py app.main:app
       '';
 
       preStart = ''
-        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:$PATH"
+        export PATH="${pkgs.coreutils}/bin:${pkgs.bash}/bin:/run/wrappers/bin:/usr/local/bin:/usr/bin:/bin"
         if [ ! -f /var/lib/webzfs/.env ]; then
           cp /etc/webzfs/env /var/lib/webzfs/.env
           chmod 644 /var/lib/webzfs/.env
